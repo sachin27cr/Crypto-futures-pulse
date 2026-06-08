@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Futures Pulse">
+<link rel="manifest" href="manifest.json">
+<title>Futures Pulse</title>
+<style>
+:root {
+  --bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--bg4:#20202c;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#f0f0f6;--muted:#6e6e80;--muted2:#a0a0b4;
+  --bull:#22c55e;--bull-bg:rgba(34,197,94,0.1);--bull-bd:rgba(34,197,94,0.3);
+  --bear:#f43f5e;--bear-bg:rgba(244,63,94,0.1);--bear-bd:rgba(244,63,94,0.3);
+  --neu:#7878a0;--neu-bg:rgba(120,120,160,0.08);--neu-bd:rgba(120,120,160,0.22);
+  --sol:#9945ff;--sol-bg:rgba(153,69,255,0.12);--btc:#f7931a;--btc-bg:rgba(247,147,26,0.12);
+  --accent:#7c6aff;--warn:#f59e0b;--warn-bg:rgba(245,158,11,0.1);--warn-bd:rgba(245,158,11,0.28);
+  --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;overflow-x:hidden}
+body{padding-top:var(--safe-top);padding-bottom:calc(var(--safe-bot)+64px)}
+
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.95);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--border);padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.app-name{font-size:17px;font-weight:700;letter-spacing:-0.4px}
+.sym-switcher{display:flex;background:var(--bg3);border:1px solid var(--border2);border-radius:9px;overflow:hidden}
+.sym-btn{padding:6px 14px;font-size:13px;font-weight:700;letter-spacing:0.3px;border:none;background:none;cursor:pointer;color:var(--muted);transition:all 0.15s}
+.sym-btn.sol-active{background:var(--sol-bg);color:#c084fc}
+.sym-btn.btc-active{background:var(--btc-bg);color:#fb923c}
+.sym-btn:active{opacity:0.7}
+.live-dot{width:7px;height:7px;border-radius:50%;animation:blink 2s ease-in-out infinite;flex-shrink:0}
+.live-dot.sol{background:var(--sol)}.live-dot.btc{background:var(--btc)}.live-dot.dead{background:var(--muted);animation:none}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
+.refresh-btn{background:none;border:1px solid var(--border2);border-radius:9px;padding:7px 12px;color:var(--muted2);cursor:pointer;font-size:13px;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.refresh-btn:active{opacity:0.6}
+.spin{animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── TF STRIP ── */
+.tf-strip{display:flex;gap:7px;padding:10px 14px 6px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border)}
+.tf-strip::-webkit-scrollbar{display:none}
+.tf-chip{display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 11px;white-space:nowrap;flex-shrink:0}
+.tf-label{font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--muted)}
+.tf-val{font-size:13px;font-weight:800;letter-spacing:0.3px}
+.tf-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* ── SCROLL ── */
+.scroll{padding:12px 13px 10px;display:flex;flex-direction:column;gap:12px}
+
+/* ── ERROR ── */
+.err{background:var(--bear-bg);border:1px solid var(--bear-bd);border-radius:10px;padding:10px 13px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--bear)}
+.err.hidden{display:none}
+
+/* ── SENTIMENT HERO ── */
+.hero{border-radius:18px;padding:18px;border:1px solid var(--border)}
+.hero.bull{background:linear-gradient(135deg,rgba(34,197,94,0.12) 0%,rgba(34,197,94,0.04) 100%);border-color:var(--bull-bd)}
+.hero.bear{background:linear-gradient(135deg,rgba(244,63,94,0.12) 0%,rgba(244,63,94,0.04) 100%);border-color:var(--bear-bd)}
+.hero.side{background:var(--bg2);border-color:var(--border2)}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.hero-left{}
+.hero-sym{font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:4px}
+.hero-price{font-size:36px;font-weight:800;letter-spacing:-1.5px;font-variant-numeric:tabular-nums;line-height:1}
+.hero-change{display:flex;align-items:center;gap:7px;margin-top:6px}
+.hero-chg{font-size:14px;font-weight:700;padding:3px 9px;border-radius:6px}
+.hero-mark{font-size:12px;color:var(--muted2)}
+.hero-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.hero-verdict{font-size:22px;font-weight:800;letter-spacing:0.5px}
+.hero-score-bar{width:80px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;margin-top:2px}
+.hero-score-fill{height:100%;border-radius:3px;transition:width 0.5s}
+.hero-score-txt{font-size:11px;color:var(--muted2);text-align:right;margin-top:3px}
+/* KEY DATA PILLS below hero price */
+.hero-pills{display:flex;flex-wrap:wrap;gap:6px}
+.hero-pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:7px;padding:5px 9px}
+.hp-label{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:0.3px}
+.hp-val{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ── VOLUME CONTEXT CARD ── */
+.vol-card{border-radius:12px;padding:13px 14px;border:1px solid var(--border);background:var(--bg2)}
+.vol-card.warn{border-color:var(--warn-bd);background:var(--warn-bg)}
+.vol-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.vol-title{font-size:13px;font-weight:700}
+.vol-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;letter-spacing:0.3px}
+.vol-high{background:var(--bull-bg);color:var(--bull);border:1px solid var(--bull-bd)}
+.vol-low{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-bd)}
+.vol-normal{background:var(--neu-bg);color:var(--neu);border:1px solid var(--neu-bd)}
+.vol-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.vol-lbl{font-size:12px;color:var(--muted2)}
+.vol-num{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.bar-track{height:5px;background:rgba(255,255,255,0.05);border-radius:3px;margin-top:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width 0.5s}
+.vol-warn-text{font-size:12px;color:var(--warn);margin-top:8px;line-height:1.55;font-weight:500}
+.vol-ok-text{font-size:12px;color:var(--muted2);margin-top:6px;line-height:1.55}
+
+/* ── SECTION HDR ── */
+.sec-hdr{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin:2px 1px 0}
+
+/* ── METRIC GRID ── */
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.metric-card{background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:13px}
+.metric-lbl{font-size:10px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:4px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase}
+.metric-val{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-0.5px}
+.metric-sub{font-size:11px;margin-top:3px;color:var(--muted2)}
+.mbar{height:4px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:9px;overflow:hidden}
+.mbar-fill{height:100%;border-radius:2px;transition:width 0.5s}
+
+/* ── SIGNALS ── */
+.signal-card{background:var(--bg2);border:1px solid var(--border);border-radius:13px;overflow:hidden}
+.signal-row{display:flex;align-items:flex-start;gap:10px;padding:12px 13px;border-bottom:1px solid var(--border)}
+.signal-row:last-child{border-bottom:none}
+.sig-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0}
+.sig-body{flex:1;min-width:0}
+.sig-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:2px}
+.sig-name{font-size:14px;font-weight:700}
+.sig-badges{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.sig-tf{font-size:9px;font-weight:700;letter-spacing:0.5px;padding:2px 6px;border-radius:4px;background:var(--bg3);color:var(--muted);border:1px solid var(--border2);text-transform:uppercase}
+.sig-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;letter-spacing:0.3px;text-transform:uppercase}
+.sig-val{font-size:12px;color:var(--muted2);font-variant-numeric:tabular-nums;margin-bottom:3px}
+.sig-note{font-size:12px;color:var(--muted);line-height:1.55}
+
+/* ── TF GUIDANCE ── */
+.guide-card{background:var(--bg2);border:1px solid var(--border);border-radius:13px;overflow:hidden}
+.guide-row{display:flex;align-items:flex-start;gap:10px;padding:13px 14px;border-bottom:1px solid var(--border)}
+.guide-row:last-child{border-bottom:none}
+.guide-tf{font-size:11px;font-weight:800;padding:3px 8px;border-radius:6px;letter-spacing:0.3px;white-space:nowrap;margin-top:1px;flex-shrink:0}
+.tf-4h{background:rgba(124,106,255,0.15);color:#a78bfa;border:1px solid rgba(124,106,255,0.28)}
+.tf-1h{background:rgba(34,197,94,0.13);color:#4ade80;border:1px solid rgba(34,197,94,0.25)}
+.tf-10m{background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.25)}
+.guide-content{flex:1}
+.guide-state{font-size:14px;font-weight:800;margin-bottom:3px}
+.guide-text{font-size:13px;color:var(--muted2);line-height:1.6}
+
+/* ── DIVERGENCE ── */
+.diverg-card{background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:14px}
+.diverg-top{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.diverg-title{font-size:14px;font-weight:700;flex:1}
+.diverg-desc{font-size:13px;color:var(--muted2);line-height:1.6}
+
+/* ── RAW STRIP ── */
+.raw-strip{font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:8px;margin-top:8px;line-height:2.1}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(10,10,15,0.97);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--border);padding:9px 0 calc(9px + var(--safe-bot));display:flex}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px;border:none;background:none;color:var(--muted);transition:color 0.15s}
+.nav-item.active{color:var(--accent)}
+.nav-label{font-size:10px;font-weight:700;letter-spacing:0.3px;text-transform:uppercase}
+
+/* ── HISTORY ── */
+.hist-row{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.hist-sym{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:3px;display:inline-block}
+.hist-sym.sol{background:var(--sol-bg);color:#c084fc}
+.hist-sym.btc{background:var(--btc-bg);color:#fb923c}
+
+/* ── SETTINGS ── */
+.settings-list{background:var(--border);border-radius:13px;overflow:hidden;display:flex;flex-direction:column;gap:1px}
+.setting-row{background:var(--bg2);padding:15px 16px;display:flex;align-items:center;justify-content:space-between}
+.setting-label{font-size:15px;font-weight:500}
+.toggle{width:44px;height:26px;background:var(--bg3);border-radius:13px;position:relative;cursor:pointer;transition:background 0.2s;border:1px solid var(--border2)}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.4)}
+.toggle.on::after{transform:translateX(18px)}
+.interval-sel{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:8px;font-size:13px}
+.about-card{background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:16px;margin-top:10px}
+.about-title{font-size:16px;font-weight:700;margin-bottom:9px}
+.about-text{font-size:13px;color:var(--muted2);line-height:1.75}
+.api-chip{display:inline-flex;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:11px;color:var(--muted2);margin:3px 2px}
+.last-refresh{font-size:11px;color:var(--muted);text-align:center;margin-top:6px}
+.page{display:none}.page.active{display:block}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="app-name">Futures Pulse</span>
+    <div class="live-dot sol" id="liveDot"></div>
+  </div>
+  <div class="sym-switcher">
+    <button class="sym-btn sol-active" id="btnSOL" onclick="switchSym('SOL')">SOL</button>
+    <button class="sym-btn" id="btnBTC" onclick="switchSym('BTC')">BTC</button>
+  </div>
+  <button class="refresh-btn" onclick="refreshAll()" id="refreshBtn">
+    <svg id="refreshIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    Refresh
+  </button>
+</div>
+
+<!-- TF STRIP -->
+<div class="tf-strip" id="tfStrip">
+  <div class="tf-chip">
+    <div class="tf-dot" id="dot4h" style="background:var(--muted)"></div>
+    <span class="tf-label">4H Bias</span>
+    <span class="tf-val" id="chip4h" style="color:var(--muted)">—</span>
+  </div>
+  <div class="tf-chip">
+    <div class="tf-dot" id="dot1h" style="background:var(--muted)"></div>
+    <span class="tf-label">1H Structure</span>
+    <span class="tf-val" id="chip1h" style="color:var(--muted)">—</span>
+  </div>
+  <div class="tf-chip">
+    <div class="tf-dot" id="dot10m" style="background:var(--muted)"></div>
+    <span class="tf-label">10M Entry</span>
+    <span class="tf-val" id="chip10m" style="color:var(--muted)">—</span>
+  </div>
+  <div class="tf-chip">
+    <div class="tf-dot" id="dotFund" style="background:var(--muted)"></div>
+    <span class="tf-label">Funding</span>
+    <span class="tf-val" id="chipFund" style="color:var(--muted)">—</span>
+  </div>
+  <div class="tf-chip">
+    <div class="tf-dot" id="dotVol" style="background:var(--muted)"></div>
+    <span class="tf-label">Volume</span>
+    <span class="tf-val" id="chipVol" style="color:var(--muted)">—</span>
+  </div>
+</div>
+
+<!-- HOME PAGE -->
+<div id="page-home" class="page active">
+<div class="scroll">
+
+  <div class="err hidden" id="errBanner">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span id="errText">Binance API error</span>
+  </div>
+
+  <!-- SENTIMENT HERO -->
+  <div class="hero side" id="heroCard">
+    <div class="hero-top">
+      <div class="hero-left">
+        <div class="hero-sym" id="heroSym">SOL/USDT PERP</div>
+        <div class="hero-price" id="heroPrice">—</div>
+        <div class="hero-change">
+          <span class="hero-chg" id="heroChg">—</span>
+          <span class="hero-mark" id="heroMark">Mark —</span>
+        </div>
+      </div>
+      <div class="hero-right">
+        <div class="hero-verdict" id="heroVerdict">—</div>
+        <div class="hero-score-bar"><div class="hero-score-fill" id="heroScoreFill" style="width:50%"></div></div>
+        <div class="hero-score-txt" id="heroScoreTxt">score —/100</div>
+      </div>
+    </div>
+    <!-- KEY PILLS -->
+    <div class="hero-pills" id="heroPills">
+      <div class="hero-pill"><span class="hp-label">FUNDING</span><span class="hp-val" id="pillFund">—</span></div>
+      <div class="hero-pill"><span class="hp-label">OI 4H Δ</span><span class="hp-val" id="pillOI4h">—</span></div>
+      <div class="hero-pill"><span class="hp-label">OI 1H Δ</span><span class="hp-val" id="pillOI1h">—</span></div>
+      <div class="hero-pill"><span class="hp-label">TAKER 1H</span><span class="hp-val" id="pillTaker1h">—</span></div>
+      <div class="hero-pill"><span class="hp-label">L/S 1H</span><span class="hp-val" id="pillLS1h">—</span></div>
+      <div class="hero-pill"><span class="hp-label">1H MOM</span><span class="hp-val" id="pillMom1h">—</span></div>
+      <div class="hero-pill"><span class="hp-label">TAKER 4H</span><span class="hp-val" id="pillTaker4h">—</span></div>
+      <div class="hero-pill"><span class="hp-label">L/S 4H</span><span class="hp-val" id="pillLS4h">—</span></div>
+    </div>
+  </div>
+
+  <!-- VOLUME CONTEXT -->
+  <div class="vol-card" id="volCard">
+    <div class="vol-top">
+      <div class="vol-title">Volume &amp; Liquidity</div>
+      <span class="vol-badge vol-normal" id="volBadge">LOADING</span>
+    </div>
+    <div class="vol-row">
+      <span class="vol-lbl">24h Volume</span>
+      <span class="vol-num" id="volNow">—</span>
+    </div>
+    <div class="vol-row">
+      <span class="vol-lbl">7-Day Avg</span>
+      <span class="vol-num" id="vol7d">—</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="volBar" style="width:50%;background:var(--neu)"></div></div>
+    <div id="volText" class="vol-ok-text">Calculating volume context…</div>
+  </div>
+
+  <!-- KEY METRICS -->
+  <div class="sec-hdr">Key Metrics</div>
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-lbl">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        Funding / 8h
+      </div>
+      <div class="metric-val" id="mFundVal">—</div>
+      <div class="metric-sub" id="mFundSub">Next in —</div>
+      <div class="mbar"><div class="mbar-fill" id="mFundBar" style="width:0%"></div></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-lbl">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Open Interest
+      </div>
+      <div class="metric-val" id="mOIVal">—</div>
+      <div class="metric-sub" id="mOISub">—</div>
+      <div class="mbar"><div class="mbar-fill" id="mOIBar" style="width:0%"></div></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-lbl">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Taker Buy/Sell
+      </div>
+      <div class="metric-val" id="mTakerVal">—</div>
+      <div class="metric-sub" id="mTakerSub">10M &amp; 1H</div>
+      <div class="mbar"><div class="mbar-fill" id="mTakerBar" style="width:50%"></div></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-lbl">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="2" x2="12" y2="6"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+        Long / Short
+      </div>
+      <div class="metric-val" id="mLSVal">—</div>
+      <div class="metric-sub" id="mLSSub">—</div>
+      <div class="mbar"><div class="mbar-fill" id="mLSBar" style="width:50%"></div></div>
+    </div>
+  </div>
+
+  <!-- TIMEFRAME GUIDANCE -->
+  <div class="sec-hdr">Timeframe Guidance</div>
+  <div class="guide-card">
+    <div class="guide-row">
+      <span class="guide-tf tf-4h">4H</span>
+      <div class="guide-content">
+        <div class="guide-state" id="g4hState">—</div>
+        <div class="guide-text" id="g4hText">Analyzing 4H market bias…</div>
+      </div>
+    </div>
+    <div class="guide-row">
+      <span class="guide-tf tf-1h">1H</span>
+      <div class="guide-content">
+        <div class="guide-state" id="g1hState">—</div>
+        <div class="guide-text" id="g1hText">Analyzing 1H structure…</div>
+      </div>
+    </div>
+    <div class="guide-row">
+      <span class="guide-tf tf-10m">10M</span>
+      <div class="guide-content">
+        <div class="guide-state" id="g10mState">—</div>
+        <div class="guide-text" id="g10mText">Calculating 10M entry signal…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIGNAL BREAKDOWN — split by TF -->
+  <div class="sec-hdr">10M Entry Signals</div>
+  <div class="signal-card" id="signals10m"></div>
+
+  <div class="sec-hdr">1H Structure Signals</div>
+  <div class="signal-card" id="signals1h"></div>
+
+  <div class="sec-hdr">4H Bias Signals</div>
+  <div class="signal-card" id="signals4h"></div>
+
+  <div class="sec-hdr">All Timeframes</div>
+  <div class="signal-card" id="signalsAll"></div>
+
+  <!-- OI / PRICE DIVERGENCE -->
+  <div class="sec-hdr">OI / Price Divergence</div>
+  <div class="diverg-card">
+    <div class="diverg-top">
+      <div class="sig-dot" id="divDot" style="background:var(--muted)"></div>
+      <div class="diverg-title" id="divTitle">Analyzing…</div>
+      <span class="sig-tag" id="divTag" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;text-transform:uppercase">—</span>
+    </div>
+    <div class="diverg-desc" id="divDesc">Loading OI history from Binance…</div>
+  </div>
+
+  <!-- RAW DATA -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:13px" id="rawCard">
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.8px;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Raw API Values</div>
+    <div class="raw-strip" id="rawStrip">Loading…</div>
+  </div>
+
+  <div class="last-refresh" id="lastRefresh">Not yet refreshed</div>
+</div>
+</div>
+
+<!-- HISTORY PAGE -->
+<div id="page-history" class="page">
+<div class="scroll">
+  <div class="sec-hdr">Snapshot History</div>
+  <div id="histList"><div style="text-align:center;padding:40px;color:var(--muted);font-size:14px">No history yet.</div></div>
+</div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div id="page-settings" class="page">
+<div class="scroll">
+  <div class="sec-hdr">Preferences</div>
+  <div class="settings-list">
+    <div class="setting-row">
+      <span class="setting-label">Auto-refresh interval</span>
+      <select class="interval-sel" id="intervalSel" onchange="setRI(this.value)">
+        <option value="30">30s</option>
+        <option value="60" selected>1 min</option>
+        <option value="120">2 min</option>
+        <option value="300">5 min</option>
+      </select>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Auto-refresh</span>
+      <div class="toggle on" id="arToggle" onclick="toggleAR()"></div>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Save history</span>
+      <div class="toggle on" id="histToggle" onclick="toggleHist()"></div>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Show raw API values</span>
+      <div class="toggle on" id="rawToggle" onclick="toggleRaw()"></div>
+    </div>
+  </div>
+  <div class="about-card">
+    <div class="about-title">Data Sources · Binance Futures</div>
+    <div class="about-text">
+      All public endpoints — no API key required.<br><br>
+      <span class="api-chip">fapi/v1/ticker/24hr</span>
+      <span class="api-chip">fapi/v1/premiumIndex</span>
+      <span class="api-chip">fapi/v1/openInterest</span>
+      <span class="api-chip">futures/data/globalLongShortAccountRatio</span>
+      <span class="api-chip">futures/data/topLongShortPositionRatio</span>
+      <span class="api-chip">futures/data/takerlongshortRatio</span>
+      <span class="api-chip">futures/data/openInterestHist</span>
+      <span class="api-chip">fapi/v1/klines (daily, 7d for avg volume)</span><br><br>
+      <strong style="color:var(--text)">Timeframe mapping:</strong><br>
+      4H Bias → OI 4H delta + 24h price momentum + taker 4H (3×4H) + L/S top pos 4H (3×4H)<br>
+      1H Structure → OI 1H delta + taker ratio 1H + L/S 1H<br>
+      10M Entry → taker buy/sell (3×15m readings, 2/3 must agree) + funding<br><br>
+      <strong style="color:var(--text)">Volume context:</strong><br>
+      7-day avg from daily OHLCV klines. Flags LOW (&lt;60% avg), NORMAL, HIGH (&gt;140% avg). Weekend warning shown when volume is below threshold.
+    </div>
+  </div>
+  <div class="about-card">
+    <div class="about-title">Install on Android</div>
+    <div class="about-text">Open in Chrome → 3-dot menu → "Add to Home Screen" → Add. Runs as standalone app.</div>
+  </div>
+</div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-item active" id="nav-home" onclick="showPage('home')">
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <span class="nav-label">Pulse</span>
+  </button>
+  <button class="nav-item" id="nav-history" onclick="showPage('history')">
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    <span class="nav-label">History</span>
+  </button>
+  <button class="nav-item" id="nav-settings" onclick="showPage('settings')">
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <span class="nav-label">Settings</span>
+  </button>
+</nav>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────
+const BASE='https://fapi.binance.com';
+const SYMS={SOL:'SOLUSDT',BTC:'BTCUSDT'};
+let activeSym='SOL', autoRefresh=true, saveHist=true, showRaw=true;
+let refreshInterval=60, refreshTimer=null;
+let history=JSON.parse(localStorage.getItem('fp_hist')||'[]');
+
+// ─── UTILS ────────────────────────────────────────────────
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const colorOf=s=>s==='bull'?'var(--bull)':s==='bear'?'var(--bear)':'var(--neu)';
+const bgOf=s=>s==='bull'?'var(--bull-bg)':s==='bear'?'var(--bear-bg)':'var(--neu-bg)';
+const bdOf=s=>s==='bull'?'var(--bull-bd)':s==='bear'?'var(--bear-bd)':'var(--neu-bd)';
+const tStyle=s=>`background:${bgOf(s)};color:${colorOf(s)};border:1px solid ${bdOf(s)}`;
+const lbl=s=>s==='bull'?'BULL':s==='bear'?'BEAR':'NEU';
+
+const fmt=n=>{
+  if(n===null||n===undefined||isNaN(n))return'—';
+  const a=Math.abs(n);
+  if(a>=1e9)return(n/1e9).toFixed(2)+'B';
+  if(a>=1e6)return(n/1e6).toFixed(2)+'M';
+  if(a>=1e3)return(n/1e3).toFixed(1)+'K';
+  return n.toFixed(2);
+};
+const fmtP=n=>n>=1000?n.toFixed(2):n>=100?n.toFixed(2):n.toFixed(4);
+const sgn=(n,d=2)=>(n>=0?'+':'')+n.toFixed(d)+'%';
+const timeAgo=ts=>{const d=Math.floor((Date.now()-ts)/1000);return d<60?d+'s ago':d<3600?Math.floor(d/60)+'m ago':Math.floor(d/3600)+'h ago';};
+const nxtFund=t=>{if(!t)return'—';const ms=t-Date.now();if(ms<=0)return'now';const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);return h>0?`${h}h ${m}m`:`${m}m`;};
+
+// ─── FETCH ────────────────────────────────────────────────
+const fetchJ=async url=>{const r=await fetch(url,{signal:AbortSignal.timeout(10000)});if(!r.ok)throw new Error('HTTP '+r.status);return r.json();};
+
+async function fetchAll(sym){
+  const S=SYMS[sym];
+  const results=await Promise.allSettled([
+    fetchJ(`${BASE}/fapi/v1/ticker/24hr?symbol=${S}`),           // 0
+    fetchJ(`${BASE}/fapi/v1/premiumIndex?symbol=${S}`),           // 1
+    fetchJ(`${BASE}/fapi/v1/openInterest?symbol=${S}`),           // 2
+    fetchJ(`${BASE}/futures/data/globalLongShortAccountRatio?symbol=${S}&period=15m&limit=3`), // 3 — 10M entry: 3×15m readings for consistency
+    fetchJ(`${BASE}/futures/data/topLongShortPositionRatio?symbol=${S}&period=15m&limit=3`),   // 4 — 10M entry: 3×15m readings for consistency
+    fetchJ(`${BASE}/futures/data/topLongShortPositionRatio?symbol=${S}&period=1h&limit=1`),    // 5 — 1H structure
+    fetchJ(`${BASE}/futures/data/takerlongshortRatio?symbol=${S}&period=15m&limit=3`),         // 6 — 10M entry: 3×15m readings (covers ~45min = last 4-5 ten-min candles)
+    fetchJ(`${BASE}/futures/data/takerlongshortRatio?symbol=${S}&period=1h&limit=4`),          // 7 — 1H structure (4 readings for consistency check)
+    fetchJ(`${BASE}/futures/data/openInterestHist?symbol=${S}&period=1h&limit=6`),            // 8
+    fetchJ(`${BASE}/futures/data/openInterestHist?symbol=${S}&period=4h&limit=6`),            // 9
+    fetchJ(`${BASE}/fapi/v1/klines?symbol=${S}&interval=1d&limit=8`),                         // 10 - daily klines for avg vol
+    fetchJ(`${BASE}/fapi/v1/klines?symbol=${S}&interval=1h&limit=8`),                          // 11 - 1H klines for momentum + candle direction scoring
+    fetchJ(`${BASE}/futures/data/takerlongshortRatio?symbol=${S}&period=4h&limit=3`),          // 12 - 4H taker: 3×4H readings (covers 12h = last 3 four-hour candles)
+    fetchJ(`${BASE}/futures/data/topLongShortPositionRatio?symbol=${S}&period=4h&limit=3`)     // 13 - 4H L/S top position: 3×4H readings
+  ]);
+  const ok=v=>v.status==='fulfilled'?v.value:null;
+  return {
+    ticker:ok(results[0]),premium:ok(results[1]),oi:ok(results[2]),
+    lsGlob10m:ok(results[3]),lsTop10m:ok(results[4]),lsTop1h:ok(results[5]),
+    taker10m:ok(results[6]),taker1h:ok(results[7]),
+    oiHist1h:ok(results[8]),oiHist4h:ok(results[9]),
+    klines:ok(results[10]),klines1h:ok(results[11]),
+    taker4h:ok(results[12]),lsTop4h:ok(results[13])
+  };
+}
+
+// ─── OI DELTA ─────────────────────────────────────────────
+const oiDelta=hist=>{
+  if(!hist||hist.length<2)return null;
+  const l=parseFloat(hist[hist.length-1].sumOpenInterestValue);
+  const f=parseFloat(hist[0].sumOpenInterestValue);
+  return f?((l-f)/f)*100:null;
+};
+
+// ─── 1H PRICE MOMENTUM + CANDLE DIRECTION SCORING ────────
+// klines format: [openTime, open, high, low, close, volume, ...]
+// Returns: {
+//   pct       — % change first→last close across window
+//   accel     — 'up'|'down'|'flat' (first half vs second half avg)
+//   bullCandles — count of candles where close > open (out of total)
+//   bearCandles — count of candles where close < open
+//   totalCandles — total completed candles scored
+//   candleBias  — 'bull'|'bear'|'neu' based on 4/6 threshold
+// }
+function calc1hMomentum(klines1h) {
+  if(!klines1h||klines1h.length<4) return null;
+  // Exclude last candle (current, incomplete)
+  const candles = klines1h.slice(0, klines1h.length - 1);
+  if(candles.length < 3) return null;
+
+  const opens  = candles.map(k => parseFloat(k[1]));
+  const closes = candles.map(k => parseFloat(k[4]));
+  const first  = closes[0];
+  const last   = closes[closes.length - 1];
+  if(!first) return null;
+
+  // Overall % change
+  const pct = ((last - first) / first) * 100;
+
+  // Acceleration: first half avg vs second half avg of closes
+  const mid = Math.floor(closes.length / 2);
+  const firstHalfAvg  = closes.slice(0, mid).reduce((s,v)=>s+v,0) / mid;
+  const secondHalfAvg = closes.slice(mid).reduce((s,v)=>s+v,0) / (closes.length - mid);
+  const halfDiff = ((secondHalfAvg - firstHalfAvg) / firstHalfAvg) * 100;
+  let accel;
+  if(Math.abs(halfDiff) < 0.12) accel = 'flat';
+  else accel = halfDiff > 0 ? 'up' : 'down';
+
+  // Candle direction scoring — each candle individually
+  // Bull candle = close > open, Bear candle = close < open
+  // Doji threshold: body < 0.05% of open = neutral candle
+  let bullCandles = 0, bearCandles = 0, dojiCandles = 0;
+  candles.forEach((k, i) => {
+    const o = opens[i], cl = closes[i];
+    const bodyPct = Math.abs((cl - o) / o) * 100;
+    if(bodyPct < 0.05) { dojiCandles++; return; }
+    if(cl > o) bullCandles++;
+    else bearCandles++;
+  });
+  const totalCandles = candles.length;
+  const threshold = Math.ceil(totalCandles * 0.6); // 60% threshold — need 4/6 or 5/7
+  let candleBias;
+  if(bullCandles >= threshold)      candleBias = 'bull';
+  else if(bearCandles >= threshold) candleBias = 'bear';
+  else                              candleBias = 'neu';
+
+  return { pct, accel, bullCandles, bearCandles, dojiCandles, totalCandles, candleBias, first, last };
+}
+
+// ─── L/S CONSISTENCY CHECK ───────────────────────────────
+// Same as taker consistency but for L/S ratio arrays
+// Bull = longShortRatio > 1.1, Bear = longShortRatio < 0.92
+function calcLSConsistency(lsArr) {
+  if(!lsArr||lsArr.length<1) return {consistent:false,direction:'neu',bullCount:0,bearCount:0,readings:0,avg:1,latest:1};
+  const readings = lsArr.map(t => Math.min(parseFloat(t.longShortRatio), 3.0));
+  let bullCount=0, bearCount=0;
+  readings.forEach(r => {
+    if(r>1.1)       bullCount++;
+    else if(r<0.92) bearCount++;
+  });
+  const total = readings.length;
+  const needed = total>=3 ? 2 : total; // 2/3 is enough for L/S (slower-moving)
+  let direction;
+  if(bullCount>=needed)      direction='bull';
+  else if(bearCount>=needed) direction='bear';
+  else                       direction='neu';
+  const consistent = direction!=='neu';
+  const avg = readings.reduce((s,v)=>s+v,0)/readings.length;
+  const latest = readings[readings.length-1];
+  return {consistent,direction,bullCount,bearCount,readings:total,avg,latest};
+}
+
+// ─── TAKER CONSISTENCY CHECK ──────────────────────────────
+// Takes array of taker readings [{buySellRatio},...], newest first
+// Returns { consistent: bool, direction: 'bull'|'bear'|'neu', bullCount, bearCount, readings }
+// Only returns bull/bear if at least 3 out of 4 readings agree
+function calcTakerConsistency(takerArr) {
+  if(!takerArr||takerArr.length < 2) return { consistent: false, direction: 'neu', bullCount:0, bearCount:0, readings:0 };
+  const readings = takerArr.map(t => parseFloat(t.buySellRatio));
+  let bullCount = 0, bearCount = 0;
+  readings.forEach(r => {
+    if(r > 1.05)      bullCount++;
+    else if(r < 0.96) bearCount++;
+  });
+  const total = readings.length;
+  const needed = total >= 4 ? 3 : total; // need 3/4 or all if fewer
+  let direction;
+  if(bullCount >= needed)      direction = 'bull';
+  else if(bearCount >= needed) direction = 'bear';
+  else                         direction = 'neu';
+  const consistent = direction !== 'neu';
+  // Latest single reading for display
+  const latest = readings[readings.length - 1];
+  return { consistent, direction, bullCount, bearCount, readings: total, latest, avg: readings.reduce((s,v)=>s+v,0)/readings.length };
+}
+
+// ─── VOLUME CONTEXT ───────────────────────────────────────
+function volumeContext(klines, quoteVol24h) {
+  if(!klines||klines.length<3||!quoteVol24h) return {level:'unknown',ratio:null,avg7d:null,warnText:null,okText:'Volume data unavailable.'};
+  // klines[i][7] = quote asset volume (USDT) for that day
+  // exclude last candle (today, incomplete), use prior 7 complete days
+  const completed=klines.slice(0,klines.length-1).slice(-7);
+  const avg7d=completed.reduce((s,k)=>s+parseFloat(k[7]),0)/completed.length;
+  const ratio=quoteVol24h/avg7d;
+  let level, warnText=null, okText=null;
+  // Check if today is weekend (Sat/Sun UTC)
+  const dayOfWeek=new Date().getUTCDay(); // 0=Sun, 6=Sat
+  const isWeekend=dayOfWeek===0||dayOfWeek===6;
+  if(ratio<0.55){
+    level='LOW';
+    warnText=isWeekend
+      ? '⚠️ Weekend + Low Volume. Market is thin — spreads wider, moves can be erratic and easily manipulated. Strongly avoid new positions. If already in a trade, tighten stops.'
+      : '⚠️ Volume is well below average. Low liquidity — avoid new positions. False breakouts are common in thin markets. Wait for volume to recover.';
+  } else if(ratio<0.80){
+    level='BELOW AVG';
+    warnText=isWeekend
+      ? '⚠️ Weekend market — volume below average. Reduce position size by 50%. Be cautious of stop hunts and thin order books.'
+      : 'Volume below average. Signals are less reliable. Reduce position size and widen stops slightly.';
+  } else if(ratio>1.5){
+    level='HIGH';
+    okText='Volume is significantly above average — strong participation. Signals are more reliable. Breakouts are more likely to follow through.';
+  } else if(ratio>1.15){
+    level='ABOVE AVG';
+    okText='Volume above average — healthy liquidity. Good conditions for trading. Signals are reliable.';
+  } else {
+    level='NORMAL';
+    okText=isWeekend
+      ? 'Weekend but volume is normal. Trade with standard size, stay alert for thin-market moves.'
+      : 'Volume within normal range — standard trading conditions.';
+  }
+  return {level,ratio,avg7d,warnText,okText};
+}
+
+// ─── SINGLE SOURCE OF TRUTH FOR ALL 3 TFs ─────────────────
+// This is THE function that determines 4H bias, 1H structure, 10M entry.
+// Both the TF strip chips AND the guidance text read from this output.
+function computeTF(oiD4h, oiD1h, pricePct, takerArr1h, takerArr10m, lsR1h, funding, mom1h, takerArr4h, lsArr4h) {
+  // Compute taker consistency for all timeframes before anything else
+  const takerR1h  = calcTakerConsistency(takerArr1h);
+  const tc4h      = calcTakerConsistency(takerArr4h);   // 3×4H taker consistency
+  const ls4hC     = calcLSConsistency(lsArr4h);          // 3×4H L/S consistency
+
+  // ── 4H BIAS ──
+  // 5-vote system: OI 4H delta, price 24h momentum, taker 4H consistency,
+  //                L/S top pos 4H consistency, funding direction
+  // Needs ≥3 votes to confirm direction — same anti-single-candle logic as 1H
+  let bias4h, bias4hState, bias4hText;
+
+  const oiBullVote4h   = oiD4h!==null && oiD4h>2   ? 1 : 0;
+  const oiBearVote4h   = oiD4h!==null && oiD4h<-2  ? 1 : 0;
+  const priceBullVote  = pricePct!==null && pricePct>1.5  ? 1 : 0;
+  const priceBearVote  = pricePct!==null && pricePct<-1.5 ? 1 : 0;
+  const takerBullVote4h= tc4h.consistent && tc4h.direction==='bull' ? 1 : 0;
+  const takerBearVote4h= tc4h.consistent && tc4h.direction==='bear' ? 1 : 0;
+  const lsBullVote4h   = ls4hC.consistent && ls4hC.direction==='bull' ? 1 : 0;
+  const lsBearVote4h   = ls4hC.consistent && ls4hC.direction==='bear' ? 1 : 0;
+  const fundBullVote   = funding!==null && funding>0.02  ? 1 : 0;
+  const fundBearVote   = funding!==null && funding<-0.02 ? 1 : 0;
+
+  const bull4h = oiBullVote4h + priceBullVote + takerBullVote4h + lsBullVote4h + fundBullVote; // max 5
+  const bear4h = oiBearVote4h + priceBearVote + takerBearVote4h + lsBearVote4h + fundBearVote;
+
+  // Build context string for guidance text
+  const t4hStr  = tc4h.readings>=2  ? 'Taker: '+(tc4h.consistent?tc4h.direction.toUpperCase()+' '+tc4h.bullCount+'/'+tc4h.readings:'MIXED')+' (avg '+tc4h.avg.toFixed(3)+'x)' : '';
+  const ls4hStr = ls4hC.readings>=2 ? 'L/S: '+(ls4hC.consistent?ls4hC.direction.toUpperCase()+' '+ls4hC.bullCount+'/'+ls4hC.readings:'MIXED')+' (avg '+ls4hC.avg.toFixed(3)+'x)' : '';
+  const oiStr4h = oiD4h!==null      ? 'OI: '+sgn(oiD4h,2) : '';
+  const ctxParts= [oiStr4h,t4hStr,ls4hStr].filter(Boolean).join(' · ');
+
+  // Special cases: squeeze and liquidation override vote count
+  const squeeze     = oiD4h!==null&&oiD4h<-3&&pricePct!==null&&pricePct>3;
+  const liquidation = oiD4h!==null&&oiD4h<-3&&pricePct!==null&&pricePct<-3;
+  const newLongs    = oiD4h!==null&&oiD4h>4&&pricePct!==null&&pricePct>2&&takerBullVote4h;
+  const newShorts   = oiD4h!==null&&oiD4h>4&&pricePct!==null&&pricePct<-2&&takerBearVote4h;
+
+  if(newLongs) {
+    bias4h='bull'; bias4hState='Strong Bullish Trend ('+bull4h+'/5)';
+    bias4hText='New longs confirmed: OI '+sgn(oiD4h,2)+', price '+sgn(pricePct,2)+', '+t4hStr+'. '+ls4hStr+'. All three 4H candles agree — high conviction. Only long setups. Look for 1H pullback as 10M entry zone.';
+  } else if(newShorts) {
+    bias4h='bear'; bias4hState='Strong Bearish Trend ('+bear4h+'/5)';
+    bias4hText='New shorts confirmed: OI '+sgn(oiD4h,2)+', price '+sgn(pricePct,2)+', '+t4hStr+'. '+ls4hStr+'. All three 4H candles agree — high conviction. Only short setups. Fade rallies into resistance.';
+  } else if(squeeze) {
+    bias4h='bull'; bias4hState='Short Squeeze';
+    bias4hText='Price up '+sgn(pricePct,2)+' on falling OI '+sgn(oiD4h,2)+'. Shorts being closed. '+t4hStr+'. Long bias but fragile — squeeze can reverse fast. Use tight stops.';
+  } else if(liquidation) {
+    bias4h='bear'; bias4hState='Long Liquidation';
+    bias4hText='Price falling '+sgn(pricePct,2)+' with OI dropping '+sgn(oiD4h,2)+'. Longs exiting. '+t4hStr+'. Short bias but watch for exhaustion — check 1H for reversal signs.';
+  } else if(bull4h>=3) {
+    bias4h='bull'; bias4hState='Bullish Bias ('+bull4h+'/5)';
+    bias4hText='4H bias confirmed bullish ('+bull4h+'/5 votes). '+ctxParts+'. Prefer long setups. Wait for 1H structure before 10M entry.';
+  } else if(bear4h>=3) {
+    bias4h='bear'; bias4hState='Bearish Bias ('+bear4h+'/5)';
+    bias4hText='4H bias confirmed bearish ('+bear4h+'/5 votes). '+ctxParts+'. Prefer short setups. Wait for 1H rejection before 10M short entry.';
+  } else if(bull4h===2) {
+    bias4h='bull'; bias4hState='Mild Bullish ('+bull4h+'/5)';
+    bias4hText='Leaning bullish but only '+bull4h+'/5 votes confirm. '+ctxParts+'. Not a strong enough 4H trend to trade aggressively — wait for third confirmation.';
+  } else if(bear4h===2) {
+    bias4h='bear'; bias4hState='Mild Bearish ('+bear4h+'/5)';
+    bias4hText='Leaning bearish but only '+bear4h+'/5 votes confirm. '+ctxParts+'. Not a strong enough 4H trend — wait for third confirmation before committing to shorts.';
+  } else {
+    bias4h='neu'; bias4hState='Sideways / No Bias';
+    bias4hText='No clear 4H trend (bull '+bull4h+'/5, bear '+bear4h+'/5). '+ctxParts+'. Trade range edges only — buy 1H support, sell 1H resistance. Do not chase breakouts.';
+  }
+
+  // ── 1H STRUCTURE ──
+  // Anti-single-candle logic:
+  // takerConsistency: needs 3/4 historical taker readings to agree
+  // candleBias: needs 4/6 completed 1H candles to agree (close>open direction)
+  // Structure only flips when BOTH agree — one bearish engulfing cannot flip this
+  let str1h, str1hState, str1hText;
+
+  const tc    = takerR1h; // calcTakerConsistency result passed in
+  const hasTc = tc!==null&&tc.readings>=2;
+  const hasOI = oiD1h!==null;
+  const m     = mom1h;  // calc1hMomentum result
+
+  // Build evidence counts — each factor gets 1 vote
+  // Taker: only counts if consistent across multiple readings (3/4 agreement)
+  const takerBullVote = hasTc && tc.direction==='bull' && tc.consistent ? 1 : 0;
+  const takerBearVote = hasTc && tc.direction==='bear' && tc.consistent ? 1 : 0;
+
+  // Candle direction: only counts if 60% threshold met (4/6 or 5/7 candles agree)
+  const candleBullVote = m!==null && m.candleBias==='bull' ? 1 : 0;
+  const candleBearVote = m!==null && m.candleBias==='bear' ? 1 : 0;
+
+  // OI direction vote
+  const oiBullVote = hasOI && oiD1h>1.5 ? 1 : 0;
+  const oiBearVote = hasOI && oiD1h<-1  ? 1 : 0;
+
+  // L/S vote
+  const lsBullVote = lsR1h!==null && lsR1h>1.1  ? 1 : 0;
+  const lsBearVote = lsR1h!==null && lsR1h<0.9  ? 1 : 0;
+
+  // Momentum vote
+  const momBullVote = m!==null && m.pct>0.4 && m.accel!=='down' ? 1 : 0;
+  const momBearVote = m!==null && m.pct<-0.4 && m.accel!=='up'  ? 1 : 0;
+
+  const totalBull = takerBullVote + candleBullVote + oiBullVote + lsBullVote + momBullVote; // max 5
+  const totalBear = takerBearVote + candleBearVote + oiBearVote + lsBearVote + momBearVote;
+
+  // Candle summary string for display
+  const candleStr = m!==null ? m.bullCandles+'/'+m.totalCandles+' bull candles' : '';
+  const takerStr  = hasTc ? tc.bullCount+'/'+tc.readings+' bull taker readings (avg '+tc.avg.toFixed(3)+'x)' : '';
+  const momStr    = m!==null ? ' Price '+sgn(m.pct,2)+' over last '+m.totalCandles+'×1H'+(m.accel!=='flat'?' ('+m.accel+')':'')+'.' : '';
+
+  // STRICT: need ≥3 votes out of 5 AND taker must be consistent (no single-candle flip)
+  // This means one bearish engulfing changes: 1 candle vote only — not enough
+  if(totalBull>=3&&takerBullVote===1) {
+    str1h='bull'; str1hState='Bullish Structure ('+totalBull+'/5)';
+    const accelNote = m&&m.accel==='up'?' Momentum accelerating — move has legs.' : m&&m.accel==='down'?' Momentum decelerating — may stall, tighten target.' : '';
+    str1hText='Structure confirmed bullish: '+candleStr+', '+takerStr+', OI '+sgn(oiD1h||0,2)+'.'+momStr+' Look for 1H higher-low as your 10M trigger zone for a long.'+accelNote;
+  }
+  else if(totalBear>=3&&takerBearVote===1) {
+    str1h='bear'; str1hState='Bearish Structure ('+totalBear+'/5)';
+    const accelNote = m&&m.accel==='down'?' Momentum accelerating down — move has legs.' : m&&m.accel==='up'?' Momentum decelerating — potential stall, tighten target.' : '';
+    str1hText='Structure confirmed bearish: '+candleStr+', '+takerStr+', OI '+sgn(oiD1h||0,2)+'.'+momStr+' Look for 1H lower-high as your 10M trigger zone for a short.'+accelNote;
+  }
+  else if(totalBull>=2&&takerBullVote===1) {
+    str1h='bull'; str1hState='Mild Bullish ('+totalBull+'/5)';
+    str1hText='Leaning bullish but not fully confirmed ('+totalBull+'/5 factors agree). '+takerStr+'.'+momStr+' Wait for one more confirmation before 10M entry. Do not force a trade.';
+  }
+  else if(totalBear>=2&&takerBearVote===1) {
+    str1h='bear'; str1hState='Mild Bearish ('+totalBear+'/5)';
+    str1hText='Leaning bearish but not fully confirmed ('+totalBear+'/5 factors agree). '+takerStr+'.'+momStr+' Wait for one more confirmation before 10M short entry. Do not force a trade.';
+  }
+  else if(candleBullVote&&momBullVote&&!hasTc) {
+    str1h='bull'; str1hState='Price Rising (Taker Unconfirmed)';
+    str1hText=candleStr+' are bullish.'+momStr+' Taker data has insufficient history to confirm. Watch for taker ratio to show buy aggression before entering 10M long.';
+  }
+  else if(candleBearVote&&momBearVote&&!hasTc) {
+    str1h='bear'; str1hState='Price Falling (Taker Unconfirmed)';
+    str1hText=candleStr+' are bearish.'+momStr+' Taker data has insufficient history to confirm. Watch for taker ratio to show sell aggression before entering 10M short.';
+  }
+  else {
+    str1h='neu'; str1hState='No Clear Structure';
+    const detail = hasTc ? takerStr+', '+candleStr+'.' : candleStr ? candleStr+'.' : '';
+    str1hText='1H structure is mixed or insufficient — '+detail+momStr+' Votes: bull '+totalBull+'/5, bear '+totalBear+'/5. Only trade clear price action signals on 10M. Skip ambiguous setups.';
+  }
+
+  // ── 10M ENTRY ──
+  // Uses 3×15m taker readings for consistency (covers ~45 min = last 4-5 ten-min candles)
+  // Needs 2/3 readings to agree before signalling — one bad candle cannot flip this
+  let ent10m, ent10mState, ent10mText;
+  const tc10m = calcTakerConsistency(takerArr10m); // consistency check on 15m array
+  const lsC10m = takerArr10m; // reuse consistency helper signature
+
+  if(tc10m.readings >= 2) {
+    const avg = tc10m.avg;
+    const consistent = tc10m.consistent;
+    const dir = tc10m.direction;
+    const spread = '('+tc10m.bullCount+'↑ '+tc10m.bearCount+'↓ / '+tc10m.readings+' × 15m readings, avg '+avg.toFixed(3)+'x)';
+    const fundNote = funding!==null&&Math.abs(funding)>0.06 ? ' ⚠️ Extreme funding — widen stop at funding reset.' : '';
+
+    if(!consistent) {
+      ent10m='neu'; ent10mState='Mixed Signal';
+      ent10mText='10M order flow is inconsistent '+spread+'. Last 3×15m readings disagree — one candle spiked. Wait for next 15m period to resolve direction before entering.'+fundNote;
+    }
+    else if(dir==='bull') {
+      if(avg>1.25) {
+        ent10m='bull'; ent10mState='Long Signal Active';
+        ent10mText='Strong buy flow confirmed across 3×15m readings '+spread+'. If 4H and 1H align: enter long on next 10M candle close above last swing high. Stop below last 10M swing low.'+fundNote;
+      } else {
+        ent10m='bull'; ent10mState='Long Setup Forming';
+        ent10mText='Mild buy aggression across 3×15m readings '+spread+'. Setup forming but not aggressive. Wait for 10M bullish engulfing or break-retest before entry.'+fundNote;
+      }
+    }
+    else if(dir==='bear') {
+      if(avg<0.78) {
+        ent10m='bear'; ent10mState='Short Signal Active';
+        ent10mText='Heavy sell flow confirmed across 3×15m readings '+spread+'. If 4H and 1H align: enter short on next 10M candle close below last swing low. Stop above last 10M swing high.'+fundNote;
+      } else {
+        ent10m='bear'; ent10mState='Short Setup Forming';
+        ent10mText='Mild sell aggression across 3×15m readings '+spread+'. Setup forming. Wait for 10M bearish engulfing or failed retest before entry.'+fundNote;
+      }
+    }
+    else {
+      ent10m='neu'; ent10mState='No Entry Signal';
+      ent10mText='Balanced order flow across 3×15m readings '+spread+'. No entry signal. Stand aside — re-check after next 10M candle close.'+fundNote;
+    }
+  } else if(takerArr10m&&takerArr10m.length===1) {
+    // Fallback: only 1 reading available, treat as tentative
+    const r = parseFloat(takerArr10m[0].buySellRatio);
+    ent10m = r>1.08?'bull':r<0.93?'bear':'neu';
+    ent10mState = 'Tentative '+(r>1.08?'Long':r<0.93?'Short':'Neutral')+' (1 reading)';
+    ent10mText = 'Only 1×15m reading available ('+r.toFixed(3)+'x). Signal is tentative — wait for next refresh to confirm with 2-3 readings.';
+  } else {
+    ent10m='neu'; ent10mState='Loading';
+    ent10mText='10M taker data loading. Default: only enter on 10M candles that close beyond the last swing with momentum.';
+  }
+
+  return {bias4h,bias4hState,bias4hText,str1h,str1hState,str1hText,ent10m,ent10mState,ent10mText};
+}
+
+// ─── SENTIMENT SCORE (separate from TF — uses all signals) ─
+function computeScore(d) {
+  let score=50, signals=[];
+  const {fundingRate,pricePct,lsR1h,takerR10m,takerR1h,oiD1h,oiD4h,quoteVol} = d;
+  const funding=fundingRate!==null?parseFloat(fundingRate)*100:null;
+
+  // Funding
+  if(funding!==null){
+    let sig,note;
+    if(funding>0.06){score+=14;sig='bull';note='Very high positive funding — strong bullish heat. Watch for overextension.';}
+    else if(funding>0.02){score+=8;sig='bull';note='Positive funding — longs paying. Bullish bias confirmed.';}
+    else if(funding>-0.01){score+=0;sig='neu';note='Near-zero funding — market balanced, no forced positioning.';}
+    else if(funding>-0.04){score-=8;sig='bear';note='Negative funding — shorts paying. Bearish pressure in place.';}
+    else{score-=14;sig='bear';note='Deep negative funding — highly bearish market positioning.';}
+    signals.push({name:'Funding Rate',val:(funding>=0?'+':'')+funding.toFixed(4)+'% / 8h',sig,note,tf:'ALL TF'});
+  }
+  // Taker 4H — consistency across 3×4H readings
+  if(d.takerConsistency4h!==null&&d.takerConsistency4h.readings>=2){
+    const tc4=d.takerConsistency4h;
+    let sig,note;
+    if(!tc4.consistent){
+      sig='neu'; note='4H taker readings mixed across '+tc4.readings+' candles ('+tc4.bullCount+'↑ '+tc4.bearCount+'↓, avg '+tc4.avg.toFixed(3)+'x). No sustained 4H order flow direction.';
+    } else if(tc4.direction==='bull'){
+      if(tc4.avg>1.2){score+=10;sig='bull';note='Strong buy aggression confirmed across '+tc4.readings+'×4H candles ('+tc4.bullCount+'/'+tc4.readings+' bull, avg '+tc4.avg.toFixed(3)+'x). Sustained 4H buying pressure.';}
+      else{score+=5;sig='bull';note='Mild buy aggression across '+tc4.readings+'×4H candles (avg '+tc4.avg.toFixed(3)+'x). 4H long bias confirmed by multiple candles.';}
+    } else {
+      if(tc4.avg<0.82){score-=10;sig='bear';note='Strong sell aggression confirmed across '+tc4.readings+'×4H candles ('+tc4.bearCount+'/'+tc4.readings+' bear, avg '+tc4.avg.toFixed(3)+'x). Sustained 4H selling pressure.';}
+      else{score-=5;sig='bear';note='Mild sell aggression across '+tc4.readings+'×4H candles (avg '+tc4.avg.toFixed(3)+'x). 4H short bias confirmed by multiple candles.';}
+    }
+    signals.push({name:'Taker Buy/Sell (4H) ×'+tc4.readings,val:'Avg '+tc4.avg.toFixed(3)+'x · '+tc4.bullCount+'↑ '+tc4.bearCount+'↓ / '+tc4.readings,sig,note,tf:'4H BIAS'});
+  }
+  // L/S Top Position 4H — consistency across 3×4H readings
+  if(d.lsConsistency4h!==null&&d.lsConsistency4h.readings>=2){
+    const lc4=d.lsConsistency4h;
+    let sig,note;
+    if(!lc4.consistent){
+      sig='neu'; note='4H L/S ratio mixed across '+lc4.readings+' candles ('+lc4.bullCount+'↑ '+lc4.bearCount+'↓, avg '+lc4.avg.toFixed(3)+'x). No sustained smart money positioning direction.';
+    } else if(lc4.direction==='bull'){
+      if(lc4.avg>1.3){score+=8;sig='bull';note='Top traders consistently long across '+lc4.readings+'×4H candles ('+lc4.bullCount+'/'+lc4.readings+', avg '+lc4.avg.toFixed(3)+'x). Smart money holding longs across multiple 4H periods.';}
+      else{score+=4;sig='bull';note='Top traders leaning long across '+lc4.readings+'×4H readings (avg '+lc4.avg.toFixed(3)+'x). Mild smart money bullish bias.';}
+    } else {
+      if(lc4.avg<0.82){score-=8;sig='bear';note='Top traders consistently short across '+lc4.readings+'×4H candles ('+lc4.bearCount+'/'+lc4.readings+', avg '+lc4.avg.toFixed(3)+'x). Smart money holding shorts across multiple 4H periods.';}
+      else{score-=4;sig='bear';note='Top traders leaning short across '+lc4.readings+'×4H readings (avg '+lc4.avg.toFixed(3)+'x). Mild smart money bearish bias.';}
+    }
+    signals.push({name:'L/S Top Position (4H) ×'+lc4.readings,val:'Avg '+lc4.avg.toFixed(3)+'x · '+lc4.bullCount+'↑ '+lc4.bearCount+'↓ / '+lc4.readings,sig,note,tf:'4H BIAS'});
+  }
+  // Price 24h
+  if(pricePct!==null&&!isNaN(pricePct)){
+    let sig,note;
+    if(pricePct>5){score+=12;sig='bull';note='Strong 24h rally — 4H trend clearly bullish.';}
+    else if(pricePct>1.5){score+=6;sig='bull';note='Moderate bullish drift — 4H bias is up.';}
+    else if(pricePct>-1.5){score+=0;sig='neu';note='Price flat on 24h — no 4H directional bias.';}
+    else if(pricePct>-5){score-=6;sig='bear';note='Moderate decline — 4H bias is down.';}
+    else{score-=12;sig='bear';note='Strong 24h selloff — 4H trend clearly bearish.';}
+    signals.push({name:'Price Momentum (24h)',val:sgn(pricePct),sig,note,tf:'4H BIAS'});
+  }
+  // OI 4H
+  if(oiD4h!==null){
+    let sig,note;
+    if(oiD4h>4&&pricePct>0){score+=12;sig='bull';note='OI rising + price rising on 4H — new longs confirmed.';}
+    else if(oiD4h>4&&pricePct<=0){score-=8;sig='bear';note='OI rising but price falling — new shorts building.';}
+    else if(oiD4h<-3&&pricePct>0){score+=5;sig='bull';note='Price up on falling OI — short squeeze in progress.';}
+    else if(oiD4h<-3&&pricePct<=0){score-=6;sig='bear';note='OI and price both falling — long liquidation.';}
+    else{score+=0;sig='neu';note='OI change within normal range on 4H.';}
+    signals.push({name:'Open Interest Δ (4H)',val:sgn(oiD4h,2),sig,note,tf:'4H BIAS'});
+  }
+  // OI 1H
+  if(oiD1h!==null){
+    let sig,note;
+    if(oiD1h>2&&pricePct>0){score+=8;sig='bull';note='OI building on 1H with price rising — trend continuation.';}
+    else if(oiD1h>2&&pricePct<=0){score-=5;sig='bear';note='OI building on 1H but price weak — shorts accumulating.';}
+    else if(oiD1h<-2){score-=4;sig='bear';note='OI declining on 1H — positions closing, potential reversal.';}
+    else{score+=0;sig='neu';note='OI flat on 1H — no fresh position building.';}
+    signals.push({name:'Open Interest Δ (1H)',val:sgn(oiD1h,2),sig,note,tf:'1H STR'});
+  }
+  // Taker 1H — use consistency-checked value, not single reading
+  if(d.takerConsistency!==null&&d.takerConsistency.readings>=1){
+    const tc=d.takerConsistency;
+    const takerR1h=tc.avg; // use average of readings, not single candle
+    let sig,note;
+    if(!tc.consistent){
+      sig='neu';
+      note='Taker readings mixed across last '+tc.readings+' candles ('+tc.bullCount+' bull, '+tc.bearCount+' bear). No consistent 1H order flow direction — single candle spikes ignored.';
+    } else if(tc.direction==='bull'){
+      if(tc.avg>1.2){score+=8;sig='bull';note='Buy aggression consistent across '+tc.readings+' readings ('+tc.bullCount+'/'+tc.readings+' bull, avg '+tc.avg.toFixed(3)+'x). Sustained buy pressure on 1H.';}
+      else{score+=4;sig='bull';note='Mild buy aggression consistent across '+tc.readings+' readings (avg '+tc.avg.toFixed(3)+'x). 1H long bias confirmed by multiple candles.';}
+    } else {
+      if(tc.avg<0.82){score-=8;sig='bear';note='Sell aggression consistent across '+tc.readings+' readings ('+tc.bearCount+'/'+tc.readings+' bear, avg '+tc.avg.toFixed(3)+'x). Sustained sell pressure on 1H.';}
+      else{score-=4;sig='bear';note='Mild sell aggression consistent across '+tc.readings+' readings (avg '+tc.avg.toFixed(3)+'x). 1H short bias confirmed by multiple candles.';}
+    }
+    signals.push({name:'Taker Buy/Sell (1H) ×'+tc.readings,val:'Avg '+tc.avg.toFixed(3)+'x · '+tc.bullCount+'↑ '+tc.bearCount+'↓ / '+tc.readings,sig,note,tf:'1H STR'});
+  }
+  // Taker 10M — consistency-checked across 3×15m readings
+  if(d.takerConsistency10m!==null&&d.takerConsistency10m.readings>=1){
+    const tc10=d.takerConsistency10m;
+    let sig,note;
+    if(!tc10.consistent||tc10.readings<2){
+      sig='neu';
+      note='10M taker readings mixed across last '+tc10.readings+'×15m periods ('+tc10.bullCount+'↑ '+tc10.bearCount+'↓, avg '+tc10.avg.toFixed(3)+'x). No confirmed direction — one candle spike ignored.';
+    } else if(tc10.direction==='bull'){
+      if(tc10.avg>1.2){score+=6;sig='bull';note='Buy flow confirmed across '+tc10.readings+'×15m readings (avg '+tc10.avg.toFixed(3)+'x, '+tc10.bullCount+'/'+tc10.readings+' bull). Sustained buying near your 10M entries.';}
+      else{score+=3;sig='bull';note='Mild buy flow confirmed across '+tc10.readings+'×15m readings (avg '+tc10.avg.toFixed(3)+'x). 10M long setup building.';}
+    } else if(tc10.direction==='bear'){
+      if(tc10.avg<0.82){score-=6;sig='bear';note='Sell flow confirmed across '+tc10.readings+'×15m readings (avg '+tc10.avg.toFixed(3)+'x, '+tc10.bearCount+'/'+tc10.readings+' bear). Sustained selling near your 10M entries.';}
+      else{score-=3;sig='bear';note='Mild sell flow confirmed across '+tc10.readings+'×15m readings (avg '+tc10.avg.toFixed(3)+'x). 10M short setup building.';}
+    } else {
+      sig='neu'; note='Balanced 10M flow across '+tc10.readings+'×15m readings (avg '+tc10.avg.toFixed(3)+'x). No entry signal.';
+    }
+    signals.push({name:'Taker Buy/Sell (10M) ×'+tc10.readings,val:'Avg '+tc10.avg.toFixed(3)+'x · '+tc10.bullCount+'↑ '+tc10.bearCount+'↓ / '+tc10.readings,sig,note,tf:'10M ENTRY'});
+  }
+  // L/S 1H
+  if(lsR1h!==null){
+    const ls=Math.min(lsR1h,2.5);
+    let sig,note;
+    if(ls>1.3){score+=6;sig='bull';note='Top traders net long on 1H — smart money positioned up.';}
+    else if(ls>1.05){score+=3;sig='bull';note='Mild long bias from top traders on 1H.';}
+    else if(ls>0.95){score+=0;sig='neu';note='Top traders balanced — no positioning edge.';}
+    else if(ls>0.78){score-=3;sig='bear';note='Top traders leaning short on 1H.';}
+    else{score-=6;sig='bear';note='Top traders heavily short on 1H — smart money positioned down.';}
+    signals.push({name:'L/S Ratio Top Pos (1H)',val:ls.toFixed(3)+'x',sig,note,tf:'1H STR'});
+  }
+  // 1H Price Momentum
+  if(d.mom1h!==null){
+    const m=d.mom1h;
+    let sig,note;
+    if(m.pct>1.5&&m.accel==='up')      {sig='bull';note='Price up '+sgn(m.pct,2)+' over last '+m.candles+'×1H candles with accelerating momentum — strong bullish 1H move in progress.';}
+    else if(m.pct>0.4&&m.accel==='up') {sig='bull';note='Price up '+sgn(m.pct,2)+' on 1H and accelerating. Bullish momentum building — look for 10M entry on next pullback.';}
+    else if(m.pct>0.4)                 {sig='bull';note='Price up '+sgn(m.pct,2)+' on 1H but momentum '+(m.accel==='down'?'decelerating — move may be stalling. Tighten target if already in trade.':'flat.');}
+    else if(m.pct<-1.5&&m.accel==='down'){sig='bear';note='Price down '+sgn(m.pct,2)+' over last '+m.candles+'×1H candles with accelerating downside — strong bearish 1H move in progress.';}
+    else if(m.pct<-0.4&&m.accel==='down'){sig='bear';note='Price down '+sgn(m.pct,2)+' on 1H and accelerating. Bearish momentum building — look for 10M short entry on any bounce.';}
+    else if(m.pct<-0.4)                {sig='bear';note='Price down '+sgn(m.pct,2)+' on 1H but momentum '+(m.accel==='up'?'decelerating — potential reversal zone. Watch for 1H reversal candle.':'flat.');}
+    else                               {sig='neu'; note='Price change '+sgn(m.pct,2)+' on 1H — within noise range. No directional momentum signal. Wait for a clearer move.';}
+    signals.push({name:'Price Momentum (1H)',val:sgn(m.pct,2)+' · '+m.candles+'×1H · Accel: '+m.accel,sig,note,tf:'1H STR'});
+  }
+  // Volume
+  if(quoteVol!==null)
+    signals.push({name:'24h Volume',val:'$'+fmt(quoteVol),sig:'neu',note:'Conviction filter: high volume validates directional signals. Low volume = reduce size.',tf:'ALL TF'});
+
+  score=clamp(Math.round(score),5,95);
+  const sentiment=score>=62?'BULLISH':score<=38?'BEARISH':'SIDEWAYS';
+  return {score,sentiment,signals};
+}
+
+// ─── RENDER ───────────────────────────────────────────────
+function render(raw, sym) {
+  const {ticker,premium,oi,lsGlob10m,lsTop10m,lsTop1h,taker10m,taker1h,oiHist1h,oiHist4h,klines,klines1h,taker4h,lsTop4h}=raw;
+
+  // Extract
+  const price      = ticker?parseFloat(ticker.lastPrice):null;
+  const markPrice  = premium?parseFloat(premium.markPrice):null;
+  const pricePctRaw= ticker?ticker.priceChangePercent:null;
+  const pricePct   = pricePctRaw!==null&&!isNaN(parseFloat(pricePctRaw))?parseFloat(pricePctRaw):null;
+  const fundingRate= premium?premium.lastFundingRate:null;
+  const nextFT     = premium?premium.nextFundingTime:null;
+  const oiContr    = oi?parseFloat(oi.openInterest):null;
+  const oiUSD      = oiContr&&price?oiContr*price:null;
+  const quoteVol   = ticker?parseFloat(ticker.quoteVolume):null;
+  const baseVol    = ticker?parseFloat(ticker.volume):null;
+  const funding    = fundingRate!==null?parseFloat(fundingRate)*100:null;
+
+  const lsV1h  = lsTop1h&&lsTop1h.length?Math.min(parseFloat(lsTop1h[0].longShortRatio),2.5):null;
+  const lsV10m = lsTop10m&&lsTop10m.length?Math.min(parseFloat(lsTop10m[0].longShortRatio),2.5):null;
+  const lsVG10m= lsGlob10m&&lsGlob10m.length?Math.min(parseFloat(lsGlob10m[0].longShortRatio),9.9):null;
+  // taker10m: full 15m array for consistency (3 readings)
+  const tArr10m = taker10m||[];
+  const tV10m   = tArr10m.length?parseFloat(tArr10m[tArr10m.length-1].buySellRatio):null; // latest for display
+  // taker1h: full 1h array for consistency (4 readings)
+  const tV1h   = taker1h&&taker1h.length?parseFloat(taker1h[taker1h.length-1].buySellRatio):null; // latest single for display
+  const tArr1h = taker1h||[];
+  const oiD1h   = oiDelta(oiHist1h);
+  const oiD4h   = oiDelta(oiHist4h);
+  const mom1h   = calc1hMomentum(klines1h);
+  const tArr4h  = taker4h||[];
+  const lsArr4h = lsTop4h||[];
+  const tV4h    = tArr4h.length  ? parseFloat(tArr4h[tArr4h.length-1].buySellRatio)  : null;
+  const lsV4h   = lsArr4h.length ? Math.min(parseFloat(lsArr4h[lsArr4h.length-1].longShortRatio),3.0) : null;
+
+  // ── TF LOGIC — single source of truth ──
+  const tf = computeTF(oiD4h, oiD1h, pricePct, tArr1h, tArr10m, lsV1h, funding, mom1h, tArr4h, lsArr4h);
+
+  // ── Score ──
+  // Compute consistency for both 10M (15m array) and 1H (1h array)
+  const tConsistency    = calcTakerConsistency(tArr1h);
+  const tConsistency10m = calcTakerConsistency(tArr10m);
+  const tConsistency4h  = calcTakerConsistency(tArr4h);
+  const lsConsistency4h = calcLSConsistency(lsArr4h);
+  const {score,sentiment,signals} = computeScore({
+    fundingRate,pricePct,lsR1h:lsV1h,takerR10m:tV10m,takerR1h:tV1h,
+    takerConsistency:tConsistency,takerConsistency10m:tConsistency10m,
+    takerConsistency4h:tConsistency4h,lsConsistency4h:lsConsistency4h,
+    oiD1h,oiD4h,quoteVol,mom1h
+  });
+
+  // ── Volume context ──
+  const vc = volumeContext(klines, quoteVol);
+
+  // ─── UPDATE UI ───────────────────────────────────────────
+
+  // TF STRIP — reads from tf object
+  const chipColor=s=>s==='bull'?'var(--bull)':s==='bear'?'var(--bear)':'var(--neu)';
+  const stateLabel=s=>s==='bull'?'BULL':s==='bear'?'BEAR':'SIDE';
+  $('chip4h').textContent=stateLabel(tf.bias4h);  $('chip4h').style.color=chipColor(tf.bias4h);  $('dot4h').style.background=chipColor(tf.bias4h);
+  $('chip1h').textContent=stateLabel(tf.str1h);   $('chip1h').style.color=chipColor(tf.str1h);   $('dot1h').style.background=chipColor(tf.str1h);
+  $('chip10m').textContent=tf.ent10m==='bull'?'LONG':tf.ent10m==='bear'?'SHORT':'WAIT'; $('chip10m').style.color=chipColor(tf.ent10m); $('dot10m').style.background=chipColor(tf.ent10m);
+  if(funding!==null){
+    const fs=funding>0.02?'bull':funding<-0.02?'bear':'neu';
+    $('chipFund').textContent=(funding>=0?'+':'')+funding.toFixed(4)+'%'; $('chipFund').style.color=chipColor(fs); $('dotFund').style.background=chipColor(fs);
+  }
+  // Volume chip
+  const volChipColor=vc.level==='HIGH'||vc.level==='ABOVE AVG'?'var(--bull)':vc.level==='LOW'?'var(--bear)':vc.level==='BELOW AVG'?'var(--warn)':'var(--neu)';
+  $('chipVol').textContent=vc.level; $('chipVol').style.color=volChipColor; $('dotVol').style.background=volChipColor;
+
+  // HERO
+  const heroSig=sentiment==='BULLISH'?'bull':sentiment==='BEARISH'?'bear':'side';
+  const heroCard=$('heroCard');
+  heroCard.className='hero '+(sentiment==='BULLISH'?'bull':sentiment==='BEARISH'?'bear':'side');
+  $('heroSym').textContent=sym+'/USDT PERP';
+  if(price!==null){$('heroPrice').textContent='$'+fmtP(price);$('heroPrice').style.color=pricePct!==null?(pricePct>=0?'var(--bull)':'var(--bear)'):'var(--text)';}
+  if(pricePct!==null){
+    const hc=$('heroChg');
+    hc.textContent=sgn(pricePct); hc.style.background=pricePct>=0?'var(--bull-bg)':'var(--bear-bg)';
+    hc.style.color=pricePct>=0?'var(--bull)':'var(--bear)'; hc.style.border='1px solid '+(pricePct>=0?'var(--bull-bd)':'var(--bear-bd)');
+  }
+  if(markPrice!==null) $('heroMark').textContent='Mark $'+fmtP(markPrice);
+  const verdictColor=sentiment==='BULLISH'?'var(--bull)':sentiment==='BEARISH'?'var(--bear)':'var(--neu)';
+  $('heroVerdict').textContent=sentiment; $('heroVerdict').style.color=verdictColor;
+  $('heroScoreFill').style.width=score+'%'; $('heroScoreFill').style.background=verdictColor;
+  $('heroScoreTxt').textContent='score '+score+'/100';
+  // Pills
+  if(funding!==null){$('pillFund').textContent=(funding>=0?'+':'')+funding.toFixed(4)+'%';$('pillFund').style.color=funding>0.02?'var(--bull)':funding<-0.02?'var(--bear)':'var(--neu)';}
+  if(oiD4h!==null){$('pillOI4h').textContent=sgn(oiD4h,2);$('pillOI4h').style.color=oiD4h>=0?'var(--bull)':'var(--bear)';}
+  if(oiD1h!==null){$('pillOI1h').textContent=sgn(oiD1h,2);$('pillOI1h').style.color=oiD1h>=0?'var(--bull)':'var(--bear)';}
+  if(tV1h!==null){$('pillTaker1h').textContent=tV1h.toFixed(3)+'x';$('pillTaker1h').style.color=tV1h>1.05?'var(--bull)':tV1h<0.96?'var(--bear)':'var(--neu)';}
+  if(lsV1h!==null){$('pillLS1h').textContent=lsV1h.toFixed(3)+'x';$('pillLS1h').style.color=lsV1h>1.1?'var(--bull)':lsV1h<0.9?'var(--bear)':'var(--neu)';}
+  if(mom1h!==null){
+    const ms=mom1h.pct>0.4?'bull':mom1h.pct<-0.4?'bear':'neu';
+    $('pillMom1h').textContent=sgn(mom1h.pct,2)+(mom1h.accel==='up'?' ↑':mom1h.accel==='down'?' ↓':'');
+    $('pillMom1h').style.color=colorOf(ms);
+  }
+  if(tV4h!==null){
+    const ts4=tConsistency4h.consistent?(tConsistency4h.direction==='bull'?'bull':'bear'):'neu';
+    $('pillTaker4h').textContent=(tConsistency4h.readings>=2?tConsistency4h.avg.toFixed(3):tV4h.toFixed(3))+'x'+(tConsistency4h.consistent?' '+tConsistency4h.bullCount+'/'+tConsistency4h.readings:'~');
+    $('pillTaker4h').style.color=colorOf(ts4);
+  }
+  if(lsV4h!==null){
+    const ls4s=lsConsistency4h.consistent?(lsConsistency4h.direction==='bull'?'bull':'bear'):'neu';
+    $('pillLS4h').textContent=(lsConsistency4h.readings>=2?lsConsistency4h.avg.toFixed(3):lsV4h.toFixed(3))+'x'+(lsConsistency4h.consistent?' '+lsConsistency4h.bullCount+'/'+lsConsistency4h.readings:'~');
+    $('pillLS4h').style.color=colorOf(ls4s);
+  }
+
+  // VOLUME CARD
+  const vc2=$('volCard');
+  vc2.className='vol-card'+(vc.warnText?' warn':'');
+  const vb=$('volBadge');
+  vb.textContent=vc.level;
+  vb.className='vol-badge '+(vc.level==='HIGH'||vc.level==='ABOVE AVG'?'vol-high':vc.level==='LOW'||vc.level==='BELOW AVG'?'vol-low':'vol-normal');
+  $('volNow').textContent=quoteVol!==null?'$'+fmt(quoteVol):'—';
+  $('vol7d').textContent=vc.avg7d!==null?'$'+fmt(vc.avg7d)+' avg':'—';
+  if(vc.ratio!==null){
+    const pct2=clamp(vc.ratio*50,5,95);
+    $('volBar').style.width=pct2+'%';
+    $('volBar').style.background=vc.level==='HIGH'?'var(--bull)':vc.level==='LOW'?'var(--bear)':'var(--accent)';
+  }
+  const vtEl=$('volText');
+  if(vc.warnText){vtEl.className='vol-warn-text';vtEl.textContent=vc.warnText;}
+  else{vtEl.className='vol-ok-text';vtEl.textContent=vc.okText||'';}
+
+  // METRICS
+  if(funding!==null){
+    const fs=funding>0.02?'bull':funding<-0.02?'bear':'neu';
+    $('mFundVal').textContent=(funding>=0?'+':'')+funding.toFixed(4)+'%'; $('mFundVal').style.color=colorOf(fs);
+    $('mFundSub').textContent='Next in '+nxtFund(nextFT);
+    $('mFundBar').style.width=clamp(50+funding*500,5,95)+'%'; $('mFundBar').style.background=colorOf(fs);
+  }
+  if(oiUSD!==null){
+    const os=oiD1h!==null?(oiD1h>=0?'bull':'bear'):'neu';
+    $('mOIVal').textContent='$'+fmt(oiUSD); $('mOIVal').style.color=colorOf(os);
+    $('mOISub').textContent=oiD1h!==null?'1H: '+sgn(oiD1h,2)+(oiD4h!==null?' · 4H: '+sgn(oiD4h,2):''):'';
+    $('mOIBar').style.width=clamp(50+(oiD1h||0)*5,5,95)+'%'; $('mOIBar').style.background=colorOf(os);
+  }
+  if(tV10m!==null){
+    const tc10d = tConsistency10m;
+    const ts = tc10d.consistent ? (tc10d.direction==='bull'?'bull':tc10d.direction==='bear'?'bear':'neu') : 'neu';
+    $('mTakerVal').textContent=(tc10d.readings>=2?tc10d.avg.toFixed(3):tV10m.toFixed(3))+'x';
+    $('mTakerVal').style.color=colorOf(ts);
+    const c10str = tc10d.readings>=2
+      ? '10M: '+(tc10d.consistent?tc10d.direction.toUpperCase()+' '+tc10d.bullCount+'/'+tc10d.readings:'MIXED '+tc10d.bullCount+'↑'+tc10d.bearCount+'↓')+' ×15m'
+      : '10M: 1 reading';
+    const c1hstr = tConsistency.readings>=2
+      ? ' · 1H: '+(tConsistency.consistent?tConsistency.direction.toUpperCase()+' '+tConsistency.bullCount+'/'+tConsistency.readings:'MIXED')
+      : '';
+    $('mTakerSub').textContent=c10str+c1hstr;
+    $('mTakerBar').style.width=clamp((tc10d.avg||tV10m)/((tc10d.avg||tV10m)+1)*100,10,90)+'%';
+    $('mTakerBar').style.background=colorOf(ts);
+  }
+  if(lsV1h!==null){
+    const ls=colorOf(lsV1h>1.1?'bull':lsV1h<0.9?'bear':'neu');
+    $('mLSVal').textContent=lsV1h.toFixed(3)+'x'; $('mLSVal').style.color=ls;
+    $('mLSSub').textContent='Top pos 1H'+(lsVG10m!==null?' · Glb 10M: '+lsVG10m.toFixed(2)+'x':'');
+    $('mLSBar').style.width=clamp((lsV1h/(lsV1h+1))*100,10,90)+'%'; $('mLSBar').style.background=ls;
+  }
+
+  // TIMEFRAME GUIDANCE — reads from the SAME tf object as the chips
+  $('g4hState').textContent=tf.bias4hState; $('g4hState').style.color=chipColor(tf.bias4h);
+  $('g4hText').textContent=tf.bias4hText;
+  $('g1hState').textContent=tf.str1hState; $('g1hState').style.color=chipColor(tf.str1h);
+  $('g1hText').textContent=tf.str1hText;
+  $('g10mState').textContent=tf.ent10mState; $('g10mState').style.color=chipColor(tf.ent10m);
+  $('g10mText').textContent=tf.ent10mText;
+
+  // SIGNALS — split into TF sections
+  const sigHtml = s => `
+    <div class="signal-row">
+      <div class="sig-dot" style="background:${colorOf(s.sig)}"></div>
+      <div class="sig-body">
+        <div class="sig-top">
+          <span class="sig-name">${s.name}</span>
+          <span class="sig-tag" style="${tStyle(s.sig)}">${lbl(s.sig)}</span>
+        </div>
+        <div class="sig-val">${s.val}</div>
+        <div class="sig-note">${s.note}</div>
+      </div>
+    </div>`;
+  const EMPTY = '<div style="padding:12px 14px;font-size:12px;color:var(--muted)">No data for this timeframe yet.</div>';
+  const s10m = signals.filter(s=>s.tf==='10M ENTRY');
+  const s1h  = signals.filter(s=>s.tf==='1H STR');
+  const s4h  = signals.filter(s=>s.tf==='4H BIAS');
+  const sAll = signals.filter(s=>s.tf==='ALL TF');
+  $('signals10m').innerHTML = s10m.length ? s10m.map(sigHtml).join('') : EMPTY;
+  $('signals1h').innerHTML  = s1h.length  ? s1h.map(sigHtml).join('')  : EMPTY;
+  $('signals4h').innerHTML  = s4h.length  ? s4h.map(sigHtml).join('')  : EMPTY;
+  $('signalsAll').innerHTML = sAll.length ? sAll.map(sigHtml).join('') : EMPTY;
+
+  // OI DIVERGENCE
+  let div;
+  if(oiD1h===null||pricePct===null) div={sig:'neu',title:'Insufficient data',desc:'Cannot compute divergence yet.'};
+  else if(oiD1h>2&&pricePct>0.5)   div={sig:'bull',title:'OI + price rising (1H)',desc:'New longs entering as price climbs. Trend has conviction. Look for 1H higher-low then 10M long entry on breakout.'};
+  else if(oiD1h>2&&pricePct<-0.5)  div={sig:'bear',title:'OI rising, price falling (1H)',desc:'New shorts added while price drops. Strong bearish conviction. Wait for failed 1H bounce then 10M short entry.'};
+  else if(oiD1h<-2&&pricePct>0.5)  div={sig:'bull',title:'Price up, OI falling — squeeze',desc:'Shorts closing as price squeezes. Rally may be fragile once squeeze ends. Use tight stop on 10M longs.'};
+  else if(oiD1h<-2&&pricePct<-0.5) div={sig:'bear',title:'OI + price falling (1H)',desc:'Longs exiting into decline. Watch for exhaustion — monitor 1H for bullish reversal candle.'};
+  else                               div={sig:'neu', title:'No significant divergence',desc:'OI and price within normal range. No divergence edge. Focus on taker ratio and funding for 10M signals.'};
+  $('divDot').style.background=colorOf(div.sig);
+  $('divTitle').textContent=div.title;
+  $('divTag').textContent=lbl(div.sig); $('divTag').style.cssText=tStyle(div.sig)+';font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;text-transform:uppercase';
+  $('divDesc').textContent=div.desc;
+
+  // RAW
+  const rawCard=$('rawCard');
+  if(showRaw){
+    rawCard.style.display='block';
+    $('rawStrip').innerHTML=[
+      ['Price','$'+fmtP(price||0)],
+      ['24h Δ',pricePct!==null?sgn(pricePct):'—'],
+      ['Funding',funding!==null?(funding>=0?'+':'')+funding.toFixed(6)+'%':'—'],
+      ['OI','$'+fmt(oiUSD||0)],
+      ['OI 1H',oiD1h!==null?sgn(oiD1h,3):'—'],
+      ['OI 4H',oiD4h!==null?sgn(oiD4h,3):'—'],
+      ['L/S 1H',lsV1h!==null?lsV1h.toFixed(4)+'x':'—'],
+      ['Taker 4H',tV4h!==null?tV4h.toFixed(4)+'x (latest 4H)':'—'],
+      ['4H Taker C',tConsistency4h.readings>=2?(tConsistency4h.direction+' '+tConsistency4h.bullCount+'/'+tConsistency4h.readings+' avg '+tConsistency4h.avg.toFixed(3)):'loading'],
+      ['L/S 4H',lsV4h!==null?lsV4h.toFixed(4)+'x (latest 4H)':'—'],
+      ['4H L/S C',lsConsistency4h.readings>=2?(lsConsistency4h.direction+' '+lsConsistency4h.bullCount+'/'+lsConsistency4h.readings+' avg '+lsConsistency4h.avg.toFixed(3)):'loading'],
+      ['Taker 10M',tV10m!==null?tV10m.toFixed(4)+'x (latest 15m)':'—'],
+      ['10M Consist',tConsistency10m.readings>=2?(tConsistency10m.direction+' '+tConsistency10m.bullCount+'/'+tConsistency10m.readings+' avg '+tConsistency10m.avg.toFixed(3)):'loading'],
+      ['Taker 1H',tV1h!==null?tV1h.toFixed(4)+'x':'—'],
+      ['1H Mom',mom1h!==null?sgn(mom1h.pct,2)+' ('+mom1h.accel+')':'—'],
+      ['Candles',mom1h!==null?mom1h.bullCandles+'↑ '+mom1h.bearCandles+'↓ / '+mom1h.totalCandles:'—'],
+      ['Taker Consist',tConsistency.readings>=2?(tConsistency.direction+' '+tConsistency.bullCount+'/'+tConsistency.readings):'loading'],
+      ['Vol 24h',quoteVol!==null?'$'+fmt(quoteVol):'—'],
+      ['Vol 7dAvg',vc.avg7d!==null?'$'+fmt(vc.avg7d):'—'],
+      ['Vol Ratio',vc.ratio!==null?(vc.ratio*100).toFixed(0)+'%':'—'],
+    ].map(r=>`<span style="color:var(--muted)">${r[0]}:</span> <span style="color:var(--muted2)">${r[1]}</span>`).join(' &nbsp;·&nbsp; ');
+  } else rawCard.style.display='none';
+
+  // LAST REFRESH
+  $('lastRefresh').textContent='Updated '+new Date().toLocaleTimeString()+' · '+sym+'/USDT Perp';
+
+  // HISTORY
+  if(saveHist&&price!==null){
+    history.unshift({ts:Date.now(),price,pricePct,score,sentiment,sym});
+    if(history.length>80)history=history.slice(0,80);
+    localStorage.setItem('fp_hist',JSON.stringify(history));
+    renderHistory();
+  }
+  $('liveDot').className='live-dot '+(sym==='SOL'?'sol':'btc');
+}
+
+function renderHistory(){
+  if(!history.length)return;
+  $('histList').innerHTML=history.map(h=>`
+    <div class="hist-row">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:${h.sentiment==='BULLISH'?'var(--bull)':h.sentiment==='BEARISH'?'var(--bear)':'var(--neu)'}">${h.sentiment}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${new Date(h.ts).toLocaleTimeString()} · ${timeAgo(h.ts)}</div>
+        <span class="hist-sym ${(h.sym||'SOL').toLowerCase()}">${h.sym||'SOL'}</span>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:15px;font-weight:800;color:${h.sentiment==='BULLISH'?'var(--bull)':h.sentiment==='BEARISH'?'var(--bear)':'var(--neu)'}">${h.score}/100</div>
+        <div style="font-size:12px;color:var(--muted2);font-variant-numeric:tabular-nums">$${fmtP(h.price)} <span style="color:${(h.pricePct||0)>=0?'var(--bull)':'var(--bear)'}">${sgn(h.pricePct||0)}</span></div>
+      </div>
+    </div>`).join('');
+}
+
+// ─── SYMBOL SWITCH ────────────────────────────────────────
+function switchSym(sym){
+  if(activeSym===sym)return;
+  activeSym=sym;
+  $('btnSOL').className='sym-btn'+(sym==='SOL'?' sol-active':'');
+  $('btnBTC').className='sym-btn'+(sym==='BTC'?' btc-active':'');
+  $('heroPrice').textContent='—'; $('descText') && ($('descText').textContent='Switching to '+sym+'…');
+  refreshAll();
+}
+
+// ─── REFRESH ──────────────────────────────────────────────
+async function refreshAll(){
+  const icon=$('refreshIcon'),btn=$('refreshBtn');
+  icon.classList.add('spin'); btn.disabled=true;
+  $('liveDot').className='live-dot dead';
+  $('errBanner').className='err hidden';
+  try{
+    const raw=await fetchAll(activeSym);
+    if(!Object.values(raw).some(v=>v!==null))throw new Error('All API calls failed');
+    render(raw,activeSym);
+  }catch(e){
+    $('errBanner').className='err';
+    $('errText').textContent='Binance API error: '+e.message;
+    $('liveDot').className='live-dot dead';
+  }finally{icon.classList.remove('spin');btn.disabled=false;}
+}
+
+// ─── AUTO REFRESH ─────────────────────────────────────────
+function startAR(){stopAR();if(autoRefresh)refreshTimer=setInterval(refreshAll,refreshInterval*1000);}
+function stopAR(){if(refreshTimer){clearInterval(refreshTimer);refreshTimer=null;}}
+function toggleAR(){autoRefresh=!autoRefresh;$('arToggle').className='toggle'+(autoRefresh?' on':'');autoRefresh?startAR():stopAR();}
+function toggleHist(){saveHist=!saveHist;$('histToggle').className='toggle'+(saveHist?' on':'');}
+function toggleRaw(){showRaw=!showRaw;$('rawToggle').className='toggle'+(showRaw?' on':'');const c=$('rawCard');if(c)c.style.display=showRaw?'block':'none';}
+function setRI(v){refreshInterval=parseInt(v);startAR();}
+
+// ─── NAV ──────────────────────────────────────────────────
+function showPage(n){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+  $('page-'+n).classList.add('active'); $('nav-'+n).classList.add('active');
+  if(n==='history')renderHistory();
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+renderHistory();
+refreshAll();
+startAR();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshAll();});
+</script>
+</body>
+</html>
